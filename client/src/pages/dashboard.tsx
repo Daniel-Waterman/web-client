@@ -1,5 +1,7 @@
 import { Call, Device } from "@twilio/voice-sdk";
 import { useEffect, useState } from "react";
+import { SyncClient, SyncDocument } from "twilio-sync";
+import { ChatWidget } from "./chatWidget";
 
 interface IConference {
     sid: string,
@@ -22,6 +24,10 @@ export const Dashboard = () => {
     const [taskAttributes, setTaskAttributes] = useState<IConference>();
     const [isOnHold, setIsOnHold] = useState<boolean>(false);
     const [currentWorker, setCurrentWorker] = useState<string>("worker_alice");
+    const [devices, setDevices] = useState<string[]>([]);
+    const [document, setDocument] = useState<string>("");
+    const [documentName, setDocumentName] = useState<string>("");
+    const [syncDoc, setSyncDoc] = useState<SyncDocument | null>(null);
 
     let task;
 
@@ -36,9 +42,25 @@ export const Dashboard = () => {
             if (res.status === 200) {
                 let data: any = await res.json();
                 deviceToken = data.token;
+
+                let client = new SyncClient(data.token);
+                client.document("dan-sync-test").then((document) => {
+                    document.on('updated', (event) => {
+                        console.log(event.data);
+                        setDocumentName(document.uniqueName);
+                        setDocument(JSON.stringify(event.data));
+                    })
+
+                    setDocumentName(document.uniqueName);
+                    setDocument(JSON.stringify(document.data));
+
+                    console.log(document);
+
+                    setSyncDoc(document);
+                });
             }
         });
-    }, []);
+    }, [currentWorker]);
 
     const onReady = () => {
         fetch(`/api/token/taskrouter/${currentWorker}`, { method: 'POST', headers: {'Content-Type': 'application/json'}}).then(async res => {
@@ -96,7 +118,7 @@ export const Dashboard = () => {
 
                 device.on("incoming", handleIncomingCall);
 
-                device.audio?.on("deviceChange", updateAllAudioDevices.bind(device));
+                device.audio?.on("deviceChange", getAudioDevices);
 
                 device.register();
 
@@ -147,6 +169,8 @@ export const Dashboard = () => {
         })
 
         call.on("disconnect", () => {
+            setCurrentCall(null);
+            setCanAccept(false);
             console.log("Call disconnected");
 
             // fetch("/api/wrap/complete/" + currentTaskSid(), {method: 'POST', headers: {'Content-Type': 'application/json'}}).then(async res => {
@@ -224,33 +248,17 @@ export const Dashboard = () => {
     }
 
     async function getAudioDevices() {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        updateAllAudioDevices.bind(device);
-    }
-
-    function updateAllAudioDevices() {
         if (device && device.audio) {
-          updateDevices(device.audio.speakerDevices.get());
-          updateDevices(device.audio.ringtoneDevices.get());
+            console.log("Found device.audio");
+            let d: string[] = [];
+            device.audio.availableInputDevices.forEach((device, id) => {
+                console.log(id);
+                d.push(id);
+            })
+            console.log(d);
+            setDevices([...d]);
         }
-    }
-
-    function updateDevices(selectedDevices: any) {    
-        device?.audio?.availableOutputDevices.forEach(function (device: any, id: any) {
-          var isActive = selectedDevices.size === 0 && id === "default";
-          selectedDevices.forEach(function (device: any) {
-            if (device.deviceId === id) {
-              isActive = true;
-            }
-          });
-    
-          var option = document.createElement("option");
-          option.label = device.label;
-          option.setAttribute("data-id", id);
-          if (isActive) {
-            option.setAttribute("selected", "selected");
-          }
-        });
+        // updateAllAudioDevices.bind(device);
     }
 
     const makeOutgoingCall = async () => {
@@ -307,8 +315,28 @@ export const Dashboard = () => {
                         <h2 color="red">Call currently on hold</h2>
                     }
                 </div>
+
+                <div>
+                    <p>Input Devices:</p>
+                    <button onClick={getAudioDevices}>Find Devices</button>
+                    {devices.length > 0 ?
+                        devices.map(id => <p>{id}</p>)
+                        :
+                        <p>No devices found</p>
+                    }   
+                </div>
             </>
             }
+
+            <div>
+                <h2>Sync Document</h2>
+                Doc Name: {documentName}
+                <div>
+                    {document}
+                </div>
+            </div>
+
+            <ChatWidget/>
         </div>
     )
 }

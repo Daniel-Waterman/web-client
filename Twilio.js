@@ -8,6 +8,7 @@ const workspace = client.taskrouter.v1.workspaces(process.env.TWILIO_WORKSPACE_S
 
 const AccessToken = twilio.jwt.AccessToken;
 const VoiceGrant = AccessToken.VoiceGrant;
+const SyncGrant = AccessToken.SyncGrant;
 const TaskRouterGrant = AccessToken.TaskRouterGrant;
 const taskrouter = twilio.jwt.taskrouter;
 const util = taskrouter.util;
@@ -88,8 +89,6 @@ export const GetMediaToken = () => {
 
 
 
-
-
 export const GetVoiceToken = (workerIdentity) => {
     const outgoingApplicationSid = "AP10ddfde60a65c8fbd94224157ca1c8f2";
     const identity = workerIdentity;
@@ -99,6 +98,10 @@ export const GetVoiceToken = (workerIdentity) => {
         incomingAllow: true
     });
 
+    const syncGrant = new SyncGrant({
+        serviceSid: process.env.TWILIO_SYNC_SERVICE_SID
+    });
+
     const token = new AccessToken(
         process.env.TWILIO_ACCOUNT_SID,
         process.env.TWILIO_API_KEY,
@@ -106,6 +109,7 @@ export const GetVoiceToken = (workerIdentity) => {
         {identity: identity}
     );
     token.addGrant(voiceGrant);
+    token.addGrant(syncGrant);
 
     return token.toJwt();
 }

@@ -56,11 +56,15 @@ export const ParkTask = async (taskId) => {
 
     console.log(conference.participants.customer);
 
+    await client.calls(conference.participants.worker).update({
+        status: 'completed'
+    });
+
     await client.calls(conference.participants.customer).update({
         twiml: twiml.toString()
-    })
+    });
 
-
+    
 }
 
 export const UnParkTask = async (workerName) => {
@@ -78,7 +82,8 @@ export const UnParkTask = async (workerName) => {
     let attr = JSON.parse(task.attributes);
     attr = {
         ...attr,
-        contact_uri: workerSid
+        contact_sid: workerSid,
+        contact_uri: workerName
     };
 
     await DeleteTask(task.sid);
