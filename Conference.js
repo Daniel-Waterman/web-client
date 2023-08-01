@@ -45,6 +45,13 @@ export const GetParticipants = async (conferenceSid) => {
     let data = await client.conferences(conferenceSid).participants();
 }
 
+export const EndConference = async (taskId) => {
+    let conv = await FetchConference(taskId);
+    await client.conferences(conv.sid).update({
+        status: 'completed'
+    });
+}
+
 
 export const ColdTransfer = async (conferenceId, customerId) => {
     await PlaceOnHold(conferenceId, customerId, false);

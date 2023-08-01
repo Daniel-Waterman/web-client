@@ -27,7 +27,9 @@ export const Dashboard = () => {
     const [devices, setDevices] = useState<string[]>([]);
     const [document, setDocument] = useState<string>("");
     const [documentName, setDocumentName] = useState<string>("");
+    const [deviceToken, setDeviceToken] = useState<string>("");
     const [syncDoc, setSyncDoc] = useState<SyncDocument | null>(null);
+    const [conversationId, setConversationId] = useState<string | null>(null);
 
     let task;
 
@@ -35,13 +37,11 @@ export const Dashboard = () => {
 
     let currentReservation: any;
 
-    let deviceToken = "";
-
     useEffect(() => {
         fetch(`/api/token/voice/${currentWorker}`, {method: 'POST', headers: {'Content-Type': 'application/json'}}).then(async res => {
             if (res.status === 200) {
                 let data: any = await res.json();
-                deviceToken = data.token;
+                setDeviceToken(data.token);
 
                 let client = new SyncClient(data.token);
                 client.document("dan-sync-test").then((document) => {
@@ -92,6 +92,15 @@ export const Dashboard = () => {
                     setTaskId(reservation.task.sid);
 
                     console.log("Task Id:" + reservation.task.sid);
+
+                    if (reservation.task.taskChannelUniqueName == "chat") {
+                        let taskAttr = reservation.task.attributes;
+                        console.log(taskAttr);
+                        setConversationId(taskAttr.conversation_sid);
+                    }
+                    else if (reservation.task.taskChannelUniqueName == "voice") {
+
+                    }
 
                     // fetch("/api/conference/fetch/" + reservation.task.sid, {method: 'POST', headers: {'Content-Type': 'application/json'}}).then(async res => {
                     //     if (res.status === 200) {
@@ -213,7 +222,7 @@ export const Dashboard = () => {
     }
 
     const UnParkCall = () => {
-        fetch(`/api/task/unpark/${currentWorker === "worker_alice" ? "worker_bob" : "worker_alice"}`,
+        fetch(`/api/task/unpark/${currentWorker}`,
             {method: 'POST', headers: {'Content-Type': 'application/json'}}).then(async res => {
                 if (res.status === 200) {
                     console.log("Unpark successful");
@@ -245,6 +254,19 @@ export const Dashboard = () => {
                 }
             });
         }, 2000);        
+    }
+
+    const EndCall = () => {
+        if (currentCall) {
+            currentCall.disconnect();
+            console.log("Call disconnected");
+        }
+
+        // fetch(`/api/conference/${taskId}/end`, {method: 'POST', headers: {'Content-Type': 'application/json'}}).then(res => {
+        //     if (res.status === 200) {
+        //         console.log("Conference ended");
+        //     }
+        // })
     }
 
     async function getAudioDevices() {
@@ -308,6 +330,7 @@ export const Dashboard = () => {
                     <button onClick={placeOnHold}>Place on Hold</button>
                     <button onClick={ParkCall}>Park Call</button>
                     <button onClick={UnParkCall}>Un-Park Call</button>
+                    <button onClick={EndCall}>End</button>
                 </div>
 
                 <div>
@@ -328,15 +351,15 @@ export const Dashboard = () => {
             </>
             }
 
-            <div>
+            {/* <div>
                 <h2>Sync Document</h2>
                 Doc Name: {documentName}
                 <div>
                     {document}
                 </div>
-            </div>
+            </div> */}
 
-            <ChatWidget/>
+            <ChatWidget token={deviceToken} reservationId={reservationId} taskId={taskId} conversationSid={conversationId}/>
         </div>
     )
 }

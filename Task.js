@@ -18,6 +18,18 @@ export const FetchTask = async (taskId) => {
     return data;
 }
 
+export const AcceptTask = async (reservationId, taskId) => {
+    await workspace.tasks(taskId).reservations(reservationId).update({
+        reservationStatus: "accepted"
+    }).then(reservation => console.log(reservation));
+}
+
+export const CompleteTask = async (reservationId, taskId) => {
+    await workspace.tasks(taskId).update({
+        assignmentStatus: "wrapping"
+    }).then(reservation => console.log(reservation));
+}
+
 export const DeleteTask = async (taskId) => {
     console.log(taskId);
     await workspace.tasks(taskId).remove();

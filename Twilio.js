@@ -10,6 +10,7 @@ const AccessToken = twilio.jwt.AccessToken;
 const VoiceGrant = AccessToken.VoiceGrant;
 const SyncGrant = AccessToken.SyncGrant;
 const TaskRouterGrant = AccessToken.TaskRouterGrant;
+const ConversationsGrant = AccessToken.ChatGrant;
 const taskrouter = twilio.jwt.taskrouter;
 const util = taskrouter.util;
 
@@ -102,6 +103,10 @@ export const GetVoiceToken = (workerIdentity) => {
         serviceSid: process.env.TWILIO_SYNC_SERVICE_SID
     });
 
+    const chatGrant = new ConversationsGrant({
+        serviceSid: process.env.TWILIO_CHAT_SID
+    });
+
     const token = new AccessToken(
         process.env.TWILIO_ACCOUNT_SID,
         process.env.TWILIO_API_KEY,
@@ -110,6 +115,7 @@ export const GetVoiceToken = (workerIdentity) => {
     );
     token.addGrant(voiceGrant);
     token.addGrant(syncGrant);
+    token.addGrant(chatGrant);
 
     return token.toJwt();
 }
